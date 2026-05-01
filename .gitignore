@@ -1,0 +1,8 @@
+fragments
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+.env
+vendor/
