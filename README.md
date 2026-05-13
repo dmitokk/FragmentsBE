@@ -19,43 +19,44 @@
 - 🎵 **What you heard** (audio recordings)
 - 📸 **What you saw** (photos)
 
-Think of it as a digital scrapbook, but with **spatial awareness** and **clean architecture**. 🧠✨
+Plus achievements, profiles with avatars, Google OAuth (web + Android), and file streaming through the backend.
 
 ---
 
-## 🏗️ Architecture (The Cool Part)
+## 🏗️ Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
 │                        🌐 HTTP Layer (Gin)                         │
-│  ┌───────────┐  ┌──────────┐  ┌───────────┐  ┌──────────────────┐  │
-│  │   Auth    │  │ Fragments│  │ Middleware│  │     Router       │  │
-│  │  Handler  │  │  Handler │  │   (JWT)   │  │   (REST API)     │  │
-│  └─────┬─────┘  └─────┬─────┘  └───────────┘  └────────┬─────────┘  │
-└────────┼──────────────┼────────────────────────────────┼────────────┘
-         │              │                                │
-┌────────▼──────────────▼────────────────────────────────▼────────────┐
-│                    🎯 Application Layer                            │
-│  ┌───────────────┐  ┌──────────────────┐  ┌──────────────────────┐  │
-│  │  AuthService  │  │ FragmentService  │  │         DTOs         │  │
-│  └───────┬───────┘  └────────┬─────────┘  └──────────────────────┘  │
-└──────────┼───────────────────┼──────────────────────────────────────┘
-           │                   │
-┌──────────▼───────────────────▼──────────────────────────────────────┐
-│                  🏛️ Domain Layer (Pure Go, No Dependencies)        │
-│  ┌──────────────────┐  ┌──────────────────────┐  ┌──────────────┐  │
-│  │     Entities     │  │  Repository Interfaces│  │   Business   │  │
-│  │ (User, Fragment) │  │                      │  │    Rules     │  │
-│  └──────────────────┘  └──────────────────────┘  └──────────────┘  │
-└─────────────────────────────────────────────────────────────────────┘
-           │                   │
-┌──────────▼───────────────────▼──────────────────────────────────────┐
-│                  🔧 Infrastructure Layer                           │
-│  ┌───────────────────────┐  ┌────────────────────────────────────┐  │
-│  │  PostgreSQL + PostGIS │  │           MinIO (S3)               │  │
-│  │  (Spatial Queries 🗺️) │  │     (Photos & Sounds 📸🎵)        │  │
-│  └───────────────────────┘  └────────────────────────────────────┘  │
-└─────────────────────────────────────────────────────────────────────┘
+│  ┌───────┐  ┌──────────┐  ┌───────────┐  ┌───────┐  ┌──────────┐ │
+│  │ Auth  │  │ Fragment │  │   User    │  │Achiev.│  │  Router  │ │
+│  │Handler│  │  Handler │  │  Handler  │  │Handler│  │(REST API)│ │
+│  └───┬───┘  └────┬─────┘  └─────┬─────┘  └───┬───┘  └────┬─────┘ │
+└──────┼───────────┼──────────────┼────────────┼───────────┼───────┘
+       │           │              │            │           │
+┌──────▼───────────▼──────────────▼────────────▼───────────▼───────┐
+│                    🎯 Application Layer                          │
+│  ┌───────┐  ┌──────────┐  ┌────────┐  ┌────────┐  ┌──────────┐ │
+│  │ Auth  │  │ Fragment │  │  User  │  │Achiev. │  │   DTOs   │ │
+│  │Service│  │  Service │  │ Service│  │ Service│  │          │ │
+│  └───┬───┘  └────┬─────┘  └───┬────┘  └───┬────┘  └──────────┘ │
+└──────┼───────────┼────────────┼────────────┼────────────────────┘
+       │           │            │            │
+┌──────▼───────────▼────────────▼────────────▼────────────────────┐
+│               🏛️ Domain Layer (Pure Go)                        │
+│  ┌────────────┐  ┌────────────────────┐  ┌───────────────────┐ │
+│  │  Entities  │  │  Repository       │  │    Business       │ │
+│  │(User,Frag.)│  │  Interfaces       │  │     Rules         │ │
+│  └────────────┘  └────────────────────┘  └───────────────────┘ │
+└─────────────────────────────────────────────────────────────────┘
+       │           │              │            │
+┌──────▼───────────▼──────────────▼────────────▼────────────────────┐
+│                  🔧 Infrastructure Layer                         │
+│  ┌───────────────────────┐  ┌────────────────────────────────┐   │
+│  │  PostgreSQL + PostGIS │  │        MinIO (S3)             │   │
+│  │  (Spatial Queries 🗺️) │  │  (Photos, Sounds, Avatars)   │   │
+│  └───────────────────────┘  └────────────────────────────────┘   │
+└───────────────────────────────────────────────────────────────────┘
 ```
 
 ---
@@ -63,35 +64,28 @@ Think of it as a digital scrapbook, but with **spatial awareness** and **clean a
 ## 🚀 Quick Start
 
 ### Prerequisites
-
 - 🐳 Docker & Docker Compose
-- 🔑 Google OAuth credentials (optional, for Google sign-in)
-- ☕ A sense of adventure (optional)
+- 🔑 Google OAuth credentials (optional)
 
-### 1️⃣ Clone It
+### 1️⃣ Clone & Configure
 
 ```bash
 git clone https://github.com/dmitokk/FragmentsBE.git
 cd FragmentsBE
-```
-
-### 2️⃣ Configure It
-
-```bash
 cp .env.example .env
-# Edit .env with your Google OAuth credentials (or leave them empty for testing)
+# Edit GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, etc.
 ```
 
-### 3️⃣ Launch It
+### 2️⃣ Launch
 
 ```bash
 make docker-up
 ```
 
-**That's it.** Three services spin up:
+Services spin up on these ports:
 - 🗄️ **PostgreSQL + PostGIS** → `localhost:5434`
-- 📦 **MinIO** → `localhost:9000` (console: `localhost:9001`)
-- 🚀 **App** → `localhost:8080`
+- 📦 **MinIO API/Console** → `localhost:10006` / `localhost:9001`
+- 🚀 **App** → `localhost:10005`
 
 ---
 
@@ -99,22 +93,44 @@ make docker-up
 
 ### 🔐 Authentication
 
-| Method | Endpoint               | Description                | Auth Required |
-|--------|------------------------|----------------------------|:-------------:|
-| POST   | `/api/auth/register`   | Register with email/password | ❌          |
-| POST   | `/api/auth/login`      | Login & get JWT token      | ❌          |
-| GET    | `/api/auth/google/url` | Get Google OAuth URL       | ❌          |
-| POST   | `/api/auth/google`     | Google OAuth callback      | ❌          |
+| Method | Endpoint | Description | Auth |
+|--------|----------|-------------|:----:|
+| POST | `/api/auth/register` | Register with email/password | ❌ |
+| POST | `/api/auth/login` | Login & get JWT | ❌ |
+| GET | `/api/auth/google/url` | Get Google OAuth URL | ❌ |
+| POST | `/api/auth/google` | Google OAuth callback (web) | ❌ |
+| POST | `/api/auth/google/android` | Google OAuth (Android idToken) | ❌ |
+
+### 👤 Users & Profiles
+
+| Method | Endpoint | Description | Auth |
+|--------|----------|-------------|:----:|
+| GET | `/api/users/profile` | Get own profile | ✅ |
+| PUT | `/api/users/profile` | Update name + avatar (multipart) | ✅ |
+| GET | `/api/users/:id` | Get public profile by user ID | ✅ |
 
 ### 🧩 Fragments
 
-| Method | Endpoint               | Description                | Auth Required |
-|--------|------------------------|----------------------------|:-------------:|
-| POST   | `/api/fragments`       | Create fragment + upload files | ✅       |
-| GET    | `/api/fragments/:id`   | Get fragment by ID         | ✅          |
-| GET    | `/api/fragments`       | List fragments (with spatial query) | ✅ |
-| PUT    | `/api/fragments/:id`   | Update fragment            | ✅          |
-| DELETE | `/api/fragments/:id`   | Delete fragment            | ✅          |
+| Method | Endpoint | Description | Auth |
+|--------|----------|-------------|:----:|
+| POST | `/api/fragments` | Create fragment + upload files (multipart) | ✅ |
+| GET | `/api/fragments` | List fragments (spatial query: `lat`, `lng`, `radius`) | ✅ |
+| GET | `/api/fragments/:id` | Get fragment by ID | ✅ |
+| POST | `/api/fragments/:id/found` | Mark fragment as found | ✅ |
+| GET | `/api/fragments/found` | List IDs of found fragments | ✅ |
+
+### 🏆 Achievements
+
+| Method | Endpoint | Description | Auth |
+|--------|----------|-------------|:----:|
+| GET | `/api/achievements` | All achievements with completion status | ✅ |
+| GET | `/api/achievements/mine` | Only unlocked achievements | ✅ |
+
+### 📁 Files
+
+| Method | Endpoint | Description | Auth |
+|--------|----------|-------------|:----:|
+| GET | `/api/files/*filepath` | Serve files (photos, sounds, avatars) | ✅ |
 
 ---
 
@@ -123,7 +139,7 @@ make docker-up
 ### Register & Login
 
 ```bash
-curl -X POST http://localhost:8080/api/auth/register \
+curl -X POST http://localhost:10005/api/auth/register \
   -H "Content-Type: application/json" \
   -d '{"email":"you@example.com","password":"supersecret"}'
 ```
@@ -131,9 +147,9 @@ curl -X POST http://localhost:8080/api/auth/register \
 ### Create a Fragment with Photos
 
 ```bash
-TOKEN="your-jwt-token-here"
+TOKEN="your-jwt-token"
 
-curl -X POST http://localhost:8080/api/fragments \
+curl -X POST http://localhost:10005/api/fragments \
   -H "Authorization: Bearer $TOKEN" \
   -F "text=Found this amazing spot!" \
   -F "lat=55.7558" \
@@ -142,92 +158,122 @@ curl -X POST http://localhost:8080/api/fragments \
   -F "sound=@ambient_noise.mp3"
 ```
 
+### Update Profile with Avatar
+
+```bash
+curl -X PUT http://localhost:10005/api/users/profile \
+  -H "Authorization: Bearer $TOKEN" \
+  -F "name=New Name" \
+  -F "avatar=@avatar.jpg"
+```
+
 ### Find Nearby Fragments
 
 ```bash
-curl -X GET "http://localhost:8080/api/fragments?lat=55.7558&lng=37.6173&radius=5000" \
+curl -X GET "http://localhost:10005/api/fragments?lat=55.7558&lng=37.6173&radius=5000" \
   -H "Authorization: Bearer $TOKEN"
 ```
 
-> 💡 **Pro Tip:** The spatial query uses PostGIS `ST_DWithin` for accurate radius-based searches. Your GPS coordinates aren't just numbers here—they're *magic*. 🪄
+### Mark Fragment as Found
+
+```bash
+curl -X POST "http://localhost:10005/api/fragments/<fragment-id>/found" \
+  -H "Authorization: Bearer $TOKEN"
+```
 
 ---
 
 ## 🛠️ Makefile Commands
 
-| Command             | Description                          |
-|---------------------|--------------------------------------|
-| `make help`         | Show all available commands          |
-| `make build`        | Build the application                |
-| `make run`          | Run locally (requires local DB/MinIO)|
-| `make docker-up`    | Start all containers                 |
-| `make docker-down`  | Stop all containers                  |
-| `make docker-logs`  | View logs                            |
-| `make docker-build` | Rebuild & restart                    |
-| `make test`         | Run tests                            |
-| `make clean`        | Remove build artifacts               |
+| Command | Description |
+|---------|-------------|
+| `make help` | Show all commands |
+| `make build` | Build application |
+| `make run` | Run locally |
+| `make docker-up` | Start all containers |
+| `make docker-down` | Stop all containers |
+| `make docker-logs` | View logs |
+| `make docker-build` | Rebuild Docker image & restart |
+| `make test` | Run tests |
+| `make clean` | Remove build artifacts |
 
 ---
 
 ## 📁 Project Structure
 
 ```
-cmd/fragments/main.go                    # 🚪 Entry point
+cmd/fragments/main.go
 internal/
-├── app/                                 # ⚙️ App initialization & config
-├── domain/                              # 🧠 Pure domain logic (entities, interfaces)
-├── application/                         # 🎯 Use cases & services
-├── infrastructure/                      # 🔧 External services (DB, MinIO)
-└── http/                                # 🌐 HTTP handlers, middleware, router
+├── app/                         # Init, config, migrations, seed
+│   ├── app.go
+│   └── config.go
+├── domain/
+│   ├── entity/                  # User, Fragment, UserFragment, Achievement
+│   └── repository/              # Interfaces
+├── application/
+│   ├── dto/                     # Request/response structs
+│   └── service/                 # Auth, Fragment, User, Achievement
+├── infrastructure/
+│   ├── persistence/postgres/    # Repository implementations
+│   └── storage/minio/           # File storage client
+└── http/
+    ├── handler/                 # Auth, Fragment, User, Achievement, File
+    ├── middleware/              # JWT auth middleware
+    └── router.go                # Route setup
 ```
+
+---
+
+## 🔑 Configuration
+
+| Variable | Description |
+|----------|-------------|
+| `HTTP_PORT` | App port (default: `8080`) |
+| `DB_URL` | PostgreSQL connection string |
+| `MINIO_ENDPOINT` | MinIO server address |
+| `MINIO_ACCESS_KEY` | MinIO access key |
+| `MINIO_SECRET_KEY` | MinIO secret key |
+| `MINIO_BUCKET` | MinIO bucket name |
+| `MINIO_USE_SSL` | MinIO SSL flag |
+| `JWT_SECRET` | JWT signing secret |
+| `GOOGLE_CLIENT_ID` | Web OAuth client ID |
+| `GOOGLE_CLIENT_SECRET` | Web OAuth client secret |
+| `GOOGLE_REDIRECT_URL` | OAuth redirect URL |
+| `GOOGLE_ANDROID_CLIENT_ID` | Android OAuth client ID (optional) |
+| `APP_ID` | Android/iOS app bundle ID |
+
+---
+
+## 🎯 Achievements (Seeded)
+
+| Code | Name | Condition |
+|------|------|-----------|
+| `first_found` | Первый шаг | Find 1 fragment |
+| `five_found` | Коллекционер | Find 5 fragments |
+| `ten_found` | Искатель | Find 10 fragments |
+| `twenty_five_found` | Охотник за воспоминаниями | Find 25 fragments |
+| `fifty_found` | Легенда | Find 50 fragments |
+| `with_photo` | Фотограф | Find a fragment with a photo |
+| `with_sound` | Аудиофил | Find a fragment with sound |
 
 ---
 
 ## 🎭 Fun Facts
 
-- 🗺️ The database stores your locations as **PostGIS geometry points**, so your memories are geographically indexed. Even if you forget where you were, the database remembers. *Creepy? Maybe. Useful? Absolutely.*
-- 📸 Photos and sounds are stored in **MinIO** (S3-compatible). Because your memories deserve a *cloud*, not just a hard drive.
-- 🔐 JWT tokens expire in **24 hours**. Like Cinderella's carriage, they turn back into pumpkins at midnight. 🎃
-- 🏗️ Clean Architecture means if you ever decide to swap Gin for something else, the core logic won't even notice. It's like moving houses but keeping your favorite couch. 🛋️
-
----
-
-## 🧑‍💻 Development
-
-```bash
-# Run locally (ensure DB & MinIO are running)
-make run
-
-# Watch logs in real-time
-make docker-logs
-```
+- 🗺️ Locations stored as **PostGIS geometry points** — spatially indexed memories
+- 📸 Files served through backend at `/api/files/*filepath` with JWT auth
+- 🔐 JWT tokens expire in **24 hours**
+- 🏗️ Clean Architecture — swap Gin for anything without touching domain logic
+- 🏆 Achievements auto-check when a fragment is found
 
 ---
 
 ## 📦 Postman Collection
 
-Import `postman_collection.json` into Postman to test all endpoints. The collection automatically saves your JWT token after login/register.
-
----
-
-## 🤝 Contributing
-
-1. Fork it 🍴
-2. Create your feature branch (`git checkout -b feature/amazing-thing`)
-3. Commit your changes (`git commit -m 'Add amazing thing'`)
-4. Push to the branch (`git push origin feature/amazing-thing`)
-5. Open a Pull Request 🎉
-
-*Note: Contributions must include at least one emoji. This is non-negotiable.* 😎
+Import `postman_collection.json` for all endpoints with auto-saved JWT tokens.
 
 ---
 
 ## 📄 License
 
-MIT. Do whatever you want with it. Just don't blame me if it accidentally maps your fridge to the North Pole. 🧊🗺️
-
----
-
-> *"The map is not the territory, but with PostGIS, it's pretty damn close."*
-
-Made with ❤️ and ☕ by **dmitokk**
+MIT
