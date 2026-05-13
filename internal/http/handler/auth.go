@@ -73,3 +73,19 @@ func (h *AuthHandler) GoogleCallback(c *gin.Context) {
 
 	c.JSON(http.StatusOK, resp)
 }
+
+func (h *AuthHandler) GoogleAndroidAuth(c *gin.Context) {
+	var req dto.GoogleAndroidAuthRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	resp, err := h.authService.GoogleAndroidAuth(c.Request.Context(), &req)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, resp)
+}

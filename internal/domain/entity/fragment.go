@@ -13,6 +13,7 @@ type Fragment struct {
 	Geomark   *Geomark
 	SoundURL  string
 	PhotoURLs []string
+	ExpiresAt time.Time
 	CreatedAt time.Time
 	UpdatedAt time.Time
 }

@@ -118,7 +118,7 @@ func (h *FragmentHandler) List(c *gin.Context) {
 	c.JSON(http.StatusOK, resp)
 }
 
-func (h *FragmentHandler) Update(c *gin.Context) {
+func (h *FragmentHandler) MarkFound(c *gin.Context) {
 	userID, err := middleware.GetUserID(c)
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
@@ -132,62 +132,28 @@ func (h *FragmentHandler) Update(c *gin.Context) {
 		return
 	}
 
-	var req dto.UpdateFragmentRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	fragment, err := h.fragmentService.GetByID(c.Request.Context(), id)
-	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Fragment not found"})
-		return
-	}
-
-	if fragment.UserID != userID {
-		c.JSON(http.StatusForbidden, gin.H{"error": "Forbidden"})
-		return
-	}
-
-	resp, err := h.fragmentService.Update(c.Request.Context(), id, &req)
+	err = h.fragmentService.MarkFound(c.Request.Context(), userID, id)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusOK, resp)
+	c.JSON(http.StatusOK, gin.H{"message": "Fragment marked as found"})
 }
 
-func (h *FragmentHandler) Delete(c *gin.Context) {
+func (h *FragmentHandler) GetFound(c *gin.Context) {
 	userID, err := middleware.GetUserID(c)
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
 		return
 	}
 
-	idStr := c.Param("id")
-	id, err := uuid.Parse(idStr)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid fragment ID"})
-		return
-	}
-
-	fragment, err := h.fragmentService.GetByID(c.Request.Context(), id)
-	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Fragment not found"})
-		return
-	}
-
-	if fragment.UserID != userID {
-		c.JSON(http.StatusForbidden, gin.H{"error": "Forbidden"})
-		return
-	}
-
-	err = h.fragmentService.Delete(c.Request.Context(), id)
+	ids, err := h.fragmentService.GetFound(c.Request.Context(), userID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusNoContent, nil)
+	c.JSON(http.StatusOK, gin.H{"fragment_ids": ids})
 }
+

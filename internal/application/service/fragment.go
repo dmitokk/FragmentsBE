@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"strings"
 	"time"
 
 	"github.com/dmitokk/FragmentsBE/internal/application/dto"
@@ -13,15 +14,26 @@ import (
 	"github.com/google/uuid"
 )
 
+const filesBasePath = "/api/files/"
+
 type FragmentService struct {
-	fragmentRepo repository.FragmentRepository
-	minioClient  *minio.Client
+	fragmentRepo       repository.FragmentRepository
+	userFragmentRepo   repository.UserFragmentRepository
+	achievementService *AchievementService
+	minioClient        *minio.Client
 }
 
-func NewFragmentService(fragmentRepo repository.FragmentRepository, minioClient *minio.Client) *FragmentService {
+func NewFragmentService(
+	fragmentRepo repository.FragmentRepository,
+	userFragmentRepo repository.UserFragmentRepository,
+	achievementService *AchievementService,
+	minioClient *minio.Client,
+) *FragmentService {
 	return &FragmentService{
-		fragmentRepo: fragmentRepo,
-		minioClient:  minioClient,
+		fragmentRepo:       fragmentRepo,
+		userFragmentRepo:   userFragmentRepo,
+		achievementService: achievementService,
+		minioClient:        minioClient,
 	}
 }
 
@@ -55,6 +67,7 @@ func (s *FragmentService) Create(ctx context.Context, userID uuid.UUID, req *dto
 		Geomark:   &entity.Geomark{Lat: *req.Lat, Lng: *req.Lng},
 		SoundURL:  soundURL,
 		PhotoURLs: photoURLs,
+		ExpiresAt: time.Now().Add(time.Duration(req.GetLifetimeHours()) * time.Hour),
 	}
 
 	err := s.fragmentRepo.Create(ctx, fragment)
@@ -88,35 +101,41 @@ func (s *FragmentService) List(ctx context.Context, userID uuid.UUID, lat, lng, 
 	return responses, nil
 }
 
-func (s *FragmentService) Update(ctx context.Context, id uuid.UUID, req *dto.UpdateFragmentRequest) (*dto.FragmentResponse, error) {
-	fragment, err := s.fragmentRepo.GetByID(ctx, id)
+func (s *FragmentService) MarkFound(ctx context.Context, userID uuid.UUID, fragmentID uuid.UUID) error {
+	exists, err := s.userFragmentRepo.Exists(ctx, userID, fragmentID)
 	if err != nil {
-		return nil, err
+		return fmt.Errorf("failed to check existing fragment: %w", err)
+	}
+	if exists {
+		return nil
 	}
 
-	if req.Text != "" {
-		fragment.Text = req.Text
-	}
-
-	if req.Lat != 0 || req.Lng != 0 {
-		fragment.Geomark = &entity.Geomark{Lat: req.Lat, Lng: req.Lng}
-	}
-
-	err = s.fragmentRepo.Update(ctx, fragment)
+	err = s.userFragmentRepo.Create(ctx, userID, fragmentID)
 	if err != nil {
-		return nil, err
+		return fmt.Errorf("failed to mark fragment as found: %w", err)
 	}
 
-	return s.toResponse(fragment), nil
+	if s.achievementService != nil {
+		if err := s.achievementService.CheckAndUnlock(ctx, userID, fragmentID); err != nil {
+			return fmt.Errorf("failed to check achievements: %w", err)
+		}
+	}
+
+	return nil
 }
 
-func (s *FragmentService) Delete(ctx context.Context, id uuid.UUID) error {
-	err := s.minioClient.DeleteFiles(ctx, id.String())
+func (s *FragmentService) GetFound(ctx context.Context, userID uuid.UUID) ([]uuid.UUID, error) {
+	userFragments, err := s.userFragmentRepo.GetByUserID(ctx, userID)
 	if err != nil {
-		return fmt.Errorf("failed to delete files: %w", err)
+		return nil, err
 	}
 
-	return s.fragmentRepo.Delete(ctx, id)
+	ids := make([]uuid.UUID, len(userFragments))
+	for i, uf := range userFragments {
+		ids[i] = uf.FragmentID
+	}
+
+	return ids, nil
 }
 
 func (s *FragmentService) toResponse(fragment *entity.Fragment) *dto.FragmentResponse {
@@ -124,8 +143,9 @@ func (s *FragmentService) toResponse(fragment *entity.Fragment) *dto.FragmentRes
 		ID:        fragment.ID,
 		UserID:    fragment.UserID,
 		Text:      fragment.Text,
-		SoundURL:  fragment.SoundURL,
-		PhotoURLs: fragment.PhotoURLs,
+		SoundURL:  resolveFileURL(fragment.SoundURL),
+		PhotoURLs: resolveFileURLs(fragment.PhotoURLs),
+		ExpiresAt: fragment.ExpiresAt.Format(time.RFC3339),
 		CreatedAt: fragment.CreatedAt.Format(time.RFC3339),
 		UpdatedAt: fragment.UpdatedAt.Format(time.RFC3339),
 	}
@@ -136,4 +156,22 @@ func (s *FragmentService) toResponse(fragment *entity.Fragment) *dto.FragmentRes
 	}
 
 	return response
+}
+
+func resolveFileURL(url string) string {
+	if url == "" || strings.HasPrefix(url, "http://") || strings.HasPrefix(url, "https://") {
+		return url
+	}
+	return filesBasePath + url
+}
+
+func resolveFileURLs(urls []string) []string {
+	if urls == nil {
+		return nil
+	}
+	resolved := make([]string, len(urls))
+	for i, u := range urls {
+		resolved[i] = resolveFileURL(u)
+	}
+	return resolved
 }

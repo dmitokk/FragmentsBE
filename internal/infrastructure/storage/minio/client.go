@@ -15,10 +15,9 @@ import (
 type Client struct {
 	client     *minio.Client
 	bucketName string
-	publicURL  string
 }
 
-func NewClient(endpoint, accessKey, secretKey, bucketName string, useSSL bool, publicURL string) (*Client, error) {
+func NewClient(endpoint, accessKey, secretKey, bucketName string, useSSL bool) (*Client, error) {
 	client, err := minio.New(endpoint, &minio.Options{
 		Creds:  credentials.NewStaticV4(accessKey, secretKey, ""),
 		Secure: useSSL,
@@ -44,7 +43,6 @@ func NewClient(endpoint, accessKey, secretKey, bucketName string, useSSL bool, p
 	return &Client{
 		client:     client,
 		bucketName: bucketName,
-		publicURL:  publicURL,
 	}, nil
 }
 
@@ -57,7 +55,22 @@ func (c *Client) UploadFile(ctx context.Context, fragmentID, fileType string, fi
 		return "", fmt.Errorf("failed to upload file: %w", err)
 	}
 
-	return fmt.Sprintf("%s/%s/%s", c.publicURL, c.bucketName, objectName), nil
+	return objectName, nil
+}
+
+func (c *Client) GetFile(ctx context.Context, objectName string) (io.ReadCloser, int64, string, error) {
+	obj, err := c.client.GetObject(ctx, c.bucketName, objectName, minio.GetObjectOptions{})
+	if err != nil {
+		return nil, 0, "", fmt.Errorf("failed to get object: %w", err)
+	}
+
+	stat, err := obj.Stat()
+	if err != nil {
+		obj.Close()
+		return nil, 0, "", fmt.Errorf("failed to stat object: %w", err)
+	}
+
+	return obj, stat.Size, stat.ContentType, nil
 }
 
 func (c *Client) GetPresignedURL(ctx context.Context, objectName string, expiry time.Duration) (string, error) {
@@ -67,6 +80,18 @@ func (c *Client) GetPresignedURL(ctx context.Context, objectName string, expiry 
 	}
 
 	return url.String(), nil
+}
+
+func (c *Client) UploadAvatar(ctx context.Context, userID, filename string, reader io.Reader, size int64) (string, error) {
+	objectName := fmt.Sprintf("avatars/%s/%s", userID, filename)
+	_, err := c.client.PutObject(ctx, c.bucketName, objectName, reader, size, minio.PutObjectOptions{
+		ContentType: "application/octet-stream",
+	})
+	if err != nil {
+		return "", fmt.Errorf("failed to upload avatar: %w", err)
+	}
+
+	return objectName, nil
 }
 
 func (c *Client) DeleteFiles(ctx context.Context, fragmentID string) error {

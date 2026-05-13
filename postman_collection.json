@@ -187,6 +187,11 @@
                   "key": "sound",
                   "type": "file",
                   "src": []
+                },
+                {
+                  "key": "expires_in_hours",
+                  "value": "720",
+                  "type": "text"
                 }
               ]
             },
@@ -251,7 +256,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"text\": \"Updated fragment text\",\n  \"lat\": 55.7558,\n  \"lng\": 37.6173\n}"
+              "raw": "{\n  \"text\": \"Updated fragment text\",\n  \"lat\": 55.7558,\n  \"lng\": 37.6173,\n  \"expires_in_hours\": 720\n}"
             },
             "url": {
               "raw": "{{base_url}}/api/fragments/:id",
@@ -280,6 +285,103 @@
                   "value": "REPLACE_WITH_FRAGMENT_ID"
                 }
               ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Users",
+      "item": [
+        {
+          "name": "Get Profile",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/users/profile",
+              "host": ["{{base_url}}"],
+              "path": ["api", "users", "profile"]
+            }
+          }
+        },
+        {
+          "name": "Update Profile",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"New Name\",\n  \"avatar_url\": \"http://example.com/avatar.jpg\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/users/profile",
+              "host": ["{{base_url}}"],
+              "path": ["api", "users", "profile"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Found Fragments",
+      "item": [
+        {
+          "name": "Mark Fragment as Found",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{base_url}}/api/fragments/REPLACE_WITH_FRAGMENT_ID/found",
+              "host": ["{{base_url}}"],
+              "path": ["api", "fragments", ":id", "found"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "REPLACE_WITH_FRAGMENT_ID"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Found Fragments",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/fragments/found",
+              "host": ["{{base_url}}"],
+              "path": ["api", "fragments", "found"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Achievements",
+      "item": [
+        {
+          "name": "Get All Achievements",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/achievements",
+              "host": ["{{base_url}}"],
+              "path": ["api", "achievements"]
+            }
+          }
+        },
+        {
+          "name": "Get My Achievements",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/achievements/mine",
+              "host": ["{{base_url}}"],
+              "path": ["api", "achievements", "mine"]
             }
           }
         }

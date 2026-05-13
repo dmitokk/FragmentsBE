@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log/slog"
 	"time"
 
 	"github.com/dmitokk/FragmentsBE/internal/application/dto"
@@ -15,15 +16,17 @@ import (
 	"golang.org/x/crypto/bcrypt"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
+	"google.golang.org/api/idtoken"
 )
 
 type AuthService struct {
-	userRepo      repository.UserRepository
-	jwtSecret     string
-	googleConfig  *oauth2.Config
+	userRepo            repository.UserRepository
+	jwtSecret           string
+	googleConfig        *oauth2.Config
+	googleAndroidClientID string
 }
 
-func NewAuthService(userRepo repository.UserRepository, jwtSecret, googleClientID, googleClientSecret, googleRedirectURL string) *AuthService {
+func NewAuthService(userRepo repository.UserRepository, jwtSecret, googleClientID, googleClientSecret, googleRedirectURL, googleAndroidClientID string) *AuthService {
 	googleConfig := &oauth2.Config{
 		ClientID:     googleClientID,
 		ClientSecret: googleClientSecret,
@@ -33,9 +36,10 @@ func NewAuthService(userRepo repository.UserRepository, jwtSecret, googleClientI
 	}
 
 	return &AuthService{
-		userRepo:     userRepo,
-		jwtSecret:    jwtSecret,
-		googleConfig: googleConfig,
+		userRepo:              userRepo,
+		jwtSecret:             jwtSecret,
+		googleConfig:          googleConfig,
+		googleAndroidClientID: googleAndroidClientID,
 	}
 }
 
@@ -142,6 +146,74 @@ func (s *AuthService) GoogleCallback(ctx context.Context, req *dto.GoogleAuthReq
 			ID:       uuid.New(),
 			Email:    googleUser.Email,
 			GoogleID: googleUser.ID,
+		}
+
+		err = s.userRepo.Create(ctx, user)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create user: %w", err)
+		}
+	}
+
+	jwtToken, err := s.generateToken(user.ID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate token: %w", err)
+	}
+
+	return &dto.AuthResponse{
+		Token: jwtToken,
+		User: struct {
+			ID    string `json:"id"`
+			Email string `json:"email"`
+		}{
+			ID:    user.ID.String(),
+			Email: user.Email,
+		},
+	}, nil
+}
+
+func (s *AuthService) GoogleAndroidAuth(ctx context.Context, req *dto.GoogleAndroidAuthRequest) (*dto.AuthResponse, error) {
+	validator, err := idtoken.NewValidator(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create token validator: %w", err)
+	}
+
+	audiences := []string{s.googleConfig.ClientID}
+	if s.googleAndroidClientID != "" {
+		audiences = append(audiences, s.googleAndroidClientID)
+	}
+
+	var payload *idtoken.Payload
+	var lastErr error
+	for _, aud := range audiences {
+		payload, err = validator.Validate(ctx, req.IDToken, aud)
+		if err == nil {
+			break
+		}
+		lastErr = err
+	}
+	if payload == nil {
+		slog.Error("google android auth failed",
+			"audiences", audiences,
+			"error", lastErr,
+		)
+		return nil, fmt.Errorf("invalid id token: %w", lastErr)
+	}
+
+	email, _ := payload.Claims["email"].(string)
+	googleID := payload.Subject
+
+	slog.Info("google android auth success",
+		"google_id", googleID,
+		"email", email,
+		"aud", payload.Claims["aud"],
+	)
+
+	user, err := s.userRepo.GetByGoogleID(ctx, googleID)
+	if err != nil {
+		user = &entity.User{
+			ID:       uuid.New(),
+			Email:    email,
+			GoogleID: googleID,
 		}
 
 		err = s.userRepo.Create(ctx, user)

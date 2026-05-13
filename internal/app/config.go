@@ -10,11 +10,11 @@ type Config struct {
 	MinioSecretKey  string
 	MinioBucket     string
 	MinioUseSSL     bool
-	MinioPublicURL  string
 
 	JWTSecret string
 
-	GoogleClientID     string
-	GoogleClientSecret string
-	GoogleRedirectURL  string
+	GoogleClientID       string
+	GoogleClientSecret   string
+	GoogleRedirectURL    string
+	GoogleAndroidClientID string
 }

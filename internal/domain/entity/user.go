@@ -11,6 +11,8 @@ type User struct {
 	Email        string
 	PasswordHash string
 	GoogleID     string
+	Name         string
+	AvatarURL    string
 	CreatedAt    time.Time
 	UpdatedAt    time.Time
 }

@@ -15,6 +15,10 @@ type GoogleAuthRequest struct {
 	State string `json:"state" binding:"required"`
 }
 
+type GoogleAndroidAuthRequest struct {
+	IDToken string `json:"idToken" binding:"required"`
+}
+
 type AuthResponse struct {
 	Token string `json:"token"`
 	User  struct {
